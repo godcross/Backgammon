@@ -110,6 +110,31 @@ object MoveGen {
         return out
     }
 
+    /**
+     * Every destination the checker on [from] can reach this turn by itself, using one or more
+     * dice in a row, mapped to the sub-moves that get it there. Only legal sequences are used
+     * (each step must be in [allowedNext]). When several routes reach the same spot, the
+     * shortest wins; among equals, the one that hits more blots on the way.
+     */
+    fun checkerPaths(cur: Pos, remaining: List<Int>, made: Int, rules: TurnRules, from: Int): Map<Int, List<SubMove>> {
+        val best = HashMap<Int, List<SubMove>>()
+        fun better(a: List<SubMove>, b: List<SubMove>?): Boolean {
+            if (b == null) return true
+            if (a.size != b.size) return a.size < b.size
+            return a.count { it.hit } > b.count { it.hit }
+        }
+        fun dfs(pos: Pos, rem: List<Int>, done: Int, at: Int, path: List<SubMove>) {
+            for (m in allowedNext(pos, rem, done, rules)) {
+                if (m.from != at) continue
+                val p = path + m
+                if (better(p, best[m.to])) best[m.to] = p
+                if (m.to != OFF) dfs(applied(pos, m), minus(rem, m.die), done + 1, m.to, p)
+            }
+        }
+        dfs(cur, remaining, made, from, emptyList())
+        return best
+    }
+
     /** All distinct legal plays (by resulting position). Never empty: a blocked roll gives one empty play. */
     fun legalPlays(p: Pos, d1: Int, d2: Int): List<Play> {
         val leaves = ArrayList<Pair<List<SubMove>, Pos>>()

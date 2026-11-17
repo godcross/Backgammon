@@ -91,6 +91,39 @@ fun rulesTests() {
     }
 }
 
+fun pathTests() {
+    val rnd = Random(77)
+    var multi = 0
+    repeat(400) {
+        val pos = randomPosition(rnd)
+        val a = rnd.nextInt(1, 7); val b = rnd.nextInt(1, 7)
+        val rules = MoveGen.turnRules(pos, a, b)
+        val rem = MoveGen.diceList(a, b)
+        val allowed = MoveGen.allowedNext(pos, rem, 0, rules)
+        for (src in allowed.map { it.from }.toSet()) {
+            val paths = MoveGen.checkerPaths(pos, rem, 0, rules, src)
+            // Every single-die move is offered.
+            for (m in allowed.filter { it.from == src }) check(paths.containsKey(m.to), "single move offered as path")
+            for ((dest, path) in paths) {
+                var cur = pos; var r = rem; var made = 0; var at = src
+                for (m in path) {
+                    check(m.from == at, "path follows one checker")
+                    check(MoveGen.allowedNext(cur, r, made, rules).contains(m), "path step legal")
+                    cur = MoveGen.applied(cur, m); r = r.toMutableList().also { l -> l.remove(m.die) }; made++; at = m.to
+                }
+                check(at == dest, "path ends at dest")
+                if (path.size > 1) multi++
+            }
+        }
+    }
+    println("multi-step paths checked: $multi")
+    // Opening 6-5 from the 24 point: 24 -> 13 in one go.
+    val start = Pos.startPos()
+    val rules = MoveGen.turnRules(start, 6, 5)
+    val p = MoveGen.checkerPaths(start, listOf(6, 5), 0, rules, 24)
+    check(p[13]?.size == 2, "lover's leap 24->13 offered")
+}
+
 fun randomPosition(rnd: Random): Pos {
     // Play random moves from start to get varied positions.
     var p = Pos.startPos()
@@ -201,6 +234,7 @@ fun statsTests() {
 
 fun main() {
     rulesTests()
+    pathTests()
     statsTests()
     sessionTests()
     val t0 = System.currentTimeMillis()

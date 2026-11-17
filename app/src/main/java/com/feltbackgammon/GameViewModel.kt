@@ -32,7 +32,7 @@ enum class Screen { HOME, NEW_GAME, GAME, STATS, SETTINGS }
 
 enum class UndoMode(val label: String, val blurb: String) {
     OFF("Off", "Moves are final"),
-    TURN("This turn", "Undo checker moves until you tap Done"),
+    TURN("This turn", "Undo checker moves until your last checker lands"),
     FULL("Full take-back", "Also take back your previous turn"),
 }
 
@@ -81,7 +81,6 @@ data class UiState(
     val canRoll: Boolean = false,
     val canDouble: Boolean = false,
     val canUndo: Boolean = false,
-    val canDone: Boolean = false,
     val canTakeback: Boolean = false,
     val message: String? = null,
     val dialog: GameDialog? = null,
@@ -238,9 +237,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         val allowed = s.humanAllowed()
         val sel = selected
         if (sel != null && rel != null) {
-            val m = allowed.filter { it.from == sel && it.to == rel }.minByOrNull { it.die }
-            if (m != null) {
-                doHumanMove(m)
+            // One tap can use one die or several dice in a row with the same checker.
+            val path = pathsFor(s, sel)[rel]
+            if (path != null) {
+                doHumanMoves(path)
                 return
             }
         }
@@ -252,18 +252,24 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         publish()
     }
 
-    private fun doHumanMove(m: SubMove) = launchGame {
+    private fun pathsFor(s: Session, from: Int): Map<Int, List<SubMove>> =
+        if (s.phase != Phase.HUMAN_MOVE) emptyMap()
+        else MoveGen.checkerPaths(s.humanPos(), s.remaining, s.made.size, s.rules, from)
+
+    private fun doHumanMoves(path: List<SubMove>) = launchGame {
         val s = session!!
         selected = null
-        s.humanMove(m)
-        animateMove(true, m)
+        for ((i, m) in path.withIndex()) {
+            s.humanMove(m)
+            animateMove(true, m)
+            if (i < path.size - 1) delay(ms(40))
+        }
         syncDisplay()
         if (s.humanTurnComplete()) {
-            if (settings.undo == UndoMode.OFF) {
-                publish()
-                delay(ms(250))
-                commitHuman()
-            }
+            // Turn ends automatically once every die is used.
+            publish()
+            delay(ms(300))
+            commitHuman()
         } else {
             autoSelect()
         }
@@ -304,12 +310,6 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             autoSelect()
         }
-    }
-
-    fun onDone() {
-        val s = session ?: return
-        if (busy || !s.humanTurnComplete()) return
-        launchGame { commitHuman() }
     }
 
     private suspend fun commitHuman() {
@@ -646,7 +646,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         val inMove = s.phase == Phase.HUMAN_MOVE && !busy
         val allowed = if (s.phase == Phase.HUMAN_MOVE) s.humanAllowed() else emptyList()
         val sel = selected
-        val targets = if (sel != null) allowed.filter { it.from == sel }.map { it.to }.toSet() else emptySet()
+        val targets = if (sel != null && !busy) pathsFor(s, sel).keys else emptySet()
 
         val dice: List<DieView> = when {
             rollingDice != null -> rollingDice!!
@@ -683,11 +683,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             canRoll = noDialog && !busy && s.phase == Phase.HUMAN_PRE_ROLL,
             canDouble = noDialog && !busy && s.canHumanDouble(),
             canUndo = noDialog && !busy && settings.undo != UndoMode.OFF && s.phase == Phase.HUMAN_MOVE && s.made.isNotEmpty(),
-            canDone = noDialog && !busy && settings.undo != UndoMode.OFF && s.humanTurnComplete(),
             canTakeback = noDialog && !busy && canTakeback(s),
             message = message ?: when {
                 s.phase == Phase.HUMAN_PRE_ROLL && !busy -> if (s.canHumanDouble()) "Your turn — roll or double" else "Your turn — roll"
-                s.phase == Phase.HUMAN_MOVE && s.humanTurnComplete() && settings.undo != UndoMode.OFF && !busy -> "Tap Done to finish your turn"
                 s.phase == Phase.AI_TURN -> "AI is thinking…"
                 else -> null
             },
