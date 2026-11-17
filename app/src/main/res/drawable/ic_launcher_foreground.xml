@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 108dp adaptive icon: two points and a pair of checkers on felt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFE6D8B8" android:pathData="M30,30 L46,30 L38,74 Z" />
+    <path android:fillColor="#FF8A2A22" android:pathData="M62,78 L78,78 L70,34 Z" />
+    <path android:fillColor="#FF0C0A09" android:pathData="M54,47 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+    <path android:fillColor="#FF2B2624" android:pathData="M54,47 m-10.5,0 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0" />
+    <path android:fillColor="#FFB9A57E" android:pathData="M54,64 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+    <path android:fillColor="#FFF3EBD8" android:pathData="M54,64 m-10.5,0 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0" />
+</vector>
