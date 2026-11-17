@@ -47,26 +47,27 @@ fun GameScreen(vm: GameViewModel) {
                 onFlightFinished = vm::onFlightFinished,
                 modifier = Modifier.fillMaxSize(),
             )
-            val msg = s.message
-            val lastMsg = remember { arrayOf("") }
-            if (msg != null) lastMsg[0] = msg
-            AnimatedVisibility(
-                visible = msg != null,
-                enter = fadeIn(), exit = fadeOut(),
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 30.dp),
-            ) {
-                Text(
-                    lastMsg[0],
-                    color = Ivory, fontSize = 15.sp,
-                    modifier = Modifier
-                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                )
-            }
+            MessageBanner(s.message, Modifier.align(Alignment.TopCenter).padding(top = 30.dp))
         }
         SidePanel(vm)
     }
     Dialogs(vm)
+}
+
+@Composable
+private fun MessageBanner(msg: String?, modifier: Modifier) {
+    // Keep showing the last text while the banner fades out.
+    val lastMsg = remember { arrayOf("") }
+    if (msg != null) lastMsg[0] = msg
+    AnimatedVisibility(visible = msg != null, modifier = modifier, enter = fadeIn(), exit = fadeOut()) {
+        Text(
+            lastMsg[0],
+            color = Ivory, fontSize = 15.sp,
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+        )
+    }
 }
 
 @Composable
